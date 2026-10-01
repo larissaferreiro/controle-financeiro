@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#171717">
+<title>Meu Controle Financeiro</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f4f5f7;color:#18191b}
+header{background:#171717;color:#fff;padding:16px;position:sticky;top:0;z-index:2}.brand{font-size:18px;font-weight:800}.sub{font-size:11px;color:#aaa;margin-top:3px}
+main{padding:14px;max-width:760px;margin:auto}.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}.toolbar select{flex:1;margin:0}.btn{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer}.dark{background:#171717;color:#fff}.light{background:#fff;border:1px solid #ddd}
+.hero{background:#191919;color:white;border-radius:18px;padding:21px;margin-bottom:12px}.hero span{font-size:12px;color:#aaa}.hero h1{font-size:34px;margin:6px 0}.hero p{font-size:12px;color:#aaa;margin:0}.add{width:100%;margin-top:15px;background:#fff;color:#171717}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:9px}.card{background:#fff;border:1px solid #e4e5e7;border-radius:14px;padding:14px}.card small{display:block;color:#777;font-size:11px}.card strong{display:block;font-size:18px;margin-top:5px}
+.panel{background:#fff;border:1px solid #e4e5e7;border-radius:14px;padding:15px;margin-top:12px}.title{font-size:15px;font-weight:800}.muted{font-size:11px;color:#888;margin-top:3px}
+label{display:block;font-size:12px;color:#555;margin-top:11px}input,select{width:100%;padding:11px;border:1px solid #ddd;border-radius:9px;margin-top:5px;background:#fff;font-size:16px}
+.total{display:flex;justify-content:space-between;border-top:1px solid #eee;margin-top:14px;padding-top:14px;font-size:13px}
+.row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;border-top:1px solid #eee;padding:11px 0}.row:first-child{border-top:0}.row b{font-size:13px}.row small{display:block;font-size:10px;color:#888;margin-top:3px}.value{font-weight:700;font-size:12px}.del{background:#f0f0f0;padding:7px;border:0;border-radius:8px}
+.bar{height:7px;background:#eee;border-radius:8px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:#222}
+.insight{background:#ededf0;border-radius:14px;padding:14px;margin-top:12px;font-size:12px;line-height:1.5}
+.empty{text-align:center;color:#888;padding:22px 8px;font-size:13px}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:end;justify-content:center;z-index:5}.modal.open{display:flex}.sheet{background:#fff;width:100%;max-width:760px;border-radius:20px 20px 0 0;padding:20px}.close{float:right;background:#eee}.save{width:100%;margin-top:10px}
+.actions{display:flex;gap:8px;margin-top:12px}.actions button{flex:1}
+@media(min-width:650px){.modal{align-items:center}.sheet{border-radius:18px;max-width:470px}}
+</style>
+</head>
+<body>
+<header><div class="brand">Meu Controle Financeiros</div><div class="sub">Controle suas receitas e despesas por mês</div></header>
+<main>
+<div class="toolbar">
+<select id="month"></select>
+<button class="btn light" id="newMonth">＋ Mês</button>
+</div>
+
+<section class="hero">
+<span id="monthLabel">Mês selecionado</span>
+<h1 id="balance">R$ 0,00</h1>
+<p id="rate">Nenhuma receita cadastrada</p>
+<button class="btn add" id="newExpense">＋ Novo gasto</button>
+</section>
+
+<section class="cards">
+<div class="card"><small>Receitas</small><strong id="income">R$ 0,00</strong></div>
+<div class="card"><small>Despesas</small><strong id="spend">R$ 0,00</strong></div>
+</section>
+
+<section class="panel">
+<div class="title">Receitas do mês</div>
+<div class="muted">Preencha somente quando quiser registrar uma receita.</div>
+<label>Salário<input id="salary" type="number" step="0.01" min="0" placeholder="0,00"></label>
+<label>Adiantamento<input id="advance" type="number" step="0.01" min="0" placeholder="0,00"></label>
+<label>Outras receitas<input id="otherIncome" type="number" step="0.01" min="0" placeholder="0,00"></label>
+<div class="total"><span>Total recebido</span><b id="totalIncome">R$ 0,00</b></div>
+</section>
+
+<section class="panel">
+<div class="title">Gastos por categoria</div><div class="muted">Somente categorias com gastos aparecem.</div>
+<div id="cats" class="empty">Nenhum gasto cadastrado neste mês.</div>
+</section>
+
+<section class="panel">
+<div class="title">Gastos do mês</div><div class="muted">Todos os lançamentos ficam separados por mês.</div>
+<div id="list" class="empty">Nenhum gasto cadastrado neste mês.</div>
+</section>
+
+<section class="insight"><b>💡 Insight financeiro</b><div id="insight" style="margin-top:5px">Cadastre suas receitas e despesas para receber insights.</div></section>
+</main>
+
+<div class="modal" id="modal">
+<div class="sheet">
+<button class="btn close" id="closeModal">Fechar</button>
+<div class="title">Novo gasto</div><div class="muted">O gasto será registrado no mês selecionado.</div>
+<form id="expenseForm">
+<label>Descrição<input id="desc" required placeholder="Ex.: Mercado"></label>
+<label>Valor<input id="value" type="number" step="0.01" min="0.01" required placeholder="0,00"></label>
+<label>Categoria<select id="cat"></select></label>
+<label>Data<input id="date" type="date" required></label>
+<div class="actions"><button type="submit" class="btn dark">Adicionar gasto</button></div>
+</form>
+</div></div>
+
+<script>
+const categories=['Moradia','Contas','Alimentação','Transporte','Saúde','Lazer','Compras','Assinaturas','Cartão','Educação','Investimentos','Outros'];
+const monthNames=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+let months=JSON.parse(localStorage.getItem('mcf_months_v2')||'[]');
+let selected=localStorage.getItem('mcf_selected_month_v2')||'';
+let expenses=JSON.parse(localStorage.getItem('mcf_expenses_v2')||'[]');
+let incomes=JSON.parse(localStorage.getItem('mcf_incomes_v2')||'{}');
+
+function currentMonth(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+if(!months.length) months=[currentMonth()];
+if(!months.includes(selected)) selected=months[0];
+
+const br=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const monthLabel=m=>{const [y,mo]=m.split('-');return monthNames[Number(mo)-1]+' '+y};
+const key=()=>selected;
+
+function persist(){
+ localStorage.setItem('mcf_months_v2',JSON.stringify(months));
+ localStorage.setItem('mcf_selected_month_v2',selected);
+ localStorage.setItem('mcf_expenses_v2',JSON.stringify(expenses));
+ localStorage.setItem('mcf_incomes_v2',JSON.stringify(incomes));
+}
+function incomeObj(){return incomes[key()]||{salary:0,advance:0,other:0}}
+function totalIncome(){const x=incomeObj();return (+x.salary||0)+(+x.advance||0)+(+x.other||0)}
+function renderMonths(){
+ month.innerHTML=months.slice().sort().reverse().map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
+ month.value=selected;
+ monthLabelEl.textContent=monthLabel(selected);
+}
+const monthLabelEl=document.getElementById('monthLabel');
+
+function render(){
+ renderMonths();
+ const inc=totalIncome();
+ const list=expenses.filter(x=>x.month===selected).sort((a,b)=>b.id-a.id);
+ const sp=list.reduce((a,x)=>a+x.value,0), bal=inc-sp;
+ balance.textContent=br(bal); income.textContent=br(inc); spend.textContent=br(sp); totalIncomeEl.textContent=br(inc);
+ rate.textContent=inc?(sp/inc*100).toFixed(0)+'% da receita utilizada':'Nenhuma receita cadastrada';
+ const sums={};list.forEach(x=>sums[x.cat]=(sums[x.cat]||0)+x.value);
+ const arr=Object.entries(sums).sort((a,b)=>b[1]-a[1]), max=arr[0]?.[1]||1;
+ cats.innerHTML=arr.length?arr.map(([c,v])=>`<div style="margin:12px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${c}</span><b>${br(v)}</b></div><div class="bar"><i style="width:${v/max*100}%"></i></div></div>`).join(''):'<div class="empty">Nenhum gasto cadastrado neste mês.</div>';
+ listEl.innerHTML=list.length?list.map(x=>`<div class="row"><div><b>${x.desc}</b><small>${new Date(x.date+'T12:00:00').toLocaleDateString('pt-BR')} · ${x.cat}</small></div><div class="value">${br(x.value)}</div><button class="del" data-id="${x.id}">🗑️</button></div>`).join(''):'<div class="empty">Nenhum gasto cadastrado neste mês.</div>';
+ const top=arr[0];
+ insight.textContent=inc===0&&sp===0?'Cadastre suas receitas e despesas para receber insights.':inc===0?`Você registrou ${br(sp)} em despesas, mas ainda não cadastrou receitas neste mês.`:`Você tem ${br(bal)} de saldo. ${top?`A maior categoria é ${top[0]}, com ${br(top[1])}.`:''}`;
+ const io=incomeObj(); salary.value=io.salary||''; advance.value=io.advance||''; otherIncome.value=io.other||'';
+ persist();
+}
+const totalIncomeEl=document.getElementById('totalIncome'), listEl=document.getElementById('list');
+categories.forEach(c=>{const o=document.createElement('option');o.textContent=c;cat.appendChild(o)});
+month.addEventListener('change',()=>{selected=month.value;render()});
+[newMonth].forEach(b=>b.addEventListener('click',()=>{
+ const now=new Date(), next=prompt('Digite o mês no formato AAAA-MM (ex.: 2026-09):',currentMonth());
+ if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(next||''))return;
+ if(!months.includes(next))months.push(next);
+ selected=next;render();
+}));
+function saveIncome(){
+ incomes[selected]={salary:+salary.value||0,advance:+advance.value||0,other:+otherIncome.value||0};
+ render();
+}
+salary.addEventListener('input',saveIncome);advance.addEventListener('input',saveIncome);otherIncome.addEventListener('input',saveIncome);
+
+newExpense.addEventListener('click',()=>{date.value=selected+'-01';modal.classList.add('open')});
+closeModal.addEventListener('click',()=>modal.classList.remove('open'));
+expenseForm.addEventListener('submit',e=>{
+ e.preventDefault();
+ const v=+value.value;
+ if(!desc.value.trim()||!(v>0))return;
+ const dt=date.value||selected+'-01';
+ expenses.push({id:Date.now(),month:selected,date:dt,desc:desc.value.trim(),cat:cat.value,value:v});
+ expenseForm.reset();date.value=selected+'-01';modal.classList.remove('open');render();
+});
+listEl.addEventListener('click',e=>{
+ const b=e.target.closest('[data-id]');if(!b)return;
+ expenses=expenses.filter(x=>String(x.id)!==String(b.dataset.id));render();
+});
+render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
