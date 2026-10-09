@@ -1,4 +1,3 @@
-<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -48,9 +47,9 @@ label{display:block;font-size:12px;color:#555;margin-top:11px}input,select{width
 <section class="panel">
 <div class="title">Receitas do mês</div>
 <div class="muted">Preencha somente quando quiser registrar uma receita.</div>
-<label>Salário<input id="salary" type="number" step="0.01" min="0" placeholder="0,00"></label>
-<label>Adiantamento<input id="advance" type="number" step="0.01" min="0" placeholder="0,00"></label>
-<label>Outras receitas<input id="otherIncome" type="number" step="0.01" min="0" placeholder="0,00"></label>
+<label>Salário<input id="salary" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></label>
+<label>Adiantamento<input id="advance" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></label>
+<label>Outras receitas<input id="otherIncome" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></label>
 <div class="total"><span>Total recebido</span><b id="totalIncome">R$ 0,00</b></div>
 </section>
 
@@ -73,7 +72,7 @@ label{display:block;font-size:12px;color:#555;margin-top:11px}input,select{width
 <div class="title">Novo gasto</div><div class="muted">O gasto será registrado no mês selecionado.</div>
 <form id="expenseForm">
 <label>Descrição<input id="desc" required placeholder="Ex.: Mercado"></label>
-<label>Valor<input id="value" type="number" step="0.01" min="0.01" required placeholder="0,00"></label>
+<label>Valor<input id="value" type="text" inputmode="decimal" autocomplete="off" required placeholder="0,00"></label>
 <label>Categoria<select id="cat"></select></label>
 <label>Data<input id="date" type="date" required></label>
 <div class="actions"><button type="submit" class="btn dark">Adicionar gasto</button></div>
@@ -93,6 +92,17 @@ if(!months.length) months=[currentMonth()];
 if(!months.includes(selected)) selected=months[0];
 
 const br=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const num=s=>parseFloat(String(s).replace(',','.'))||0;
+const fmt=v=>v?String(v).replace('.',','):'';
+let typing=false;
+function clean(el){
+ const v=el.value,p=el.selectionStart;
+ let c=v.replace(/\./g,',').replace(/[^\d,]/g,'');
+ const i=c.indexOf(',');
+ if(i>=0)c=c.slice(0,i+1)+c.slice(i+1).replace(/,/g,'').slice(0,2);
+ if(c!==v){el.value=c;const n=Math.max(0,p-(v.length-c.length));el.setSelectionRange(n,n)}
+}
+document.getElementById('value').addEventListener('input',e=>clean(e.target));
 const monthLabel=m=>{const [y,mo]=m.split('-');return monthNames[Number(mo)-1]+' '+y};
 const key=()=>selected;
 
@@ -124,7 +134,7 @@ function render(){
  listEl.innerHTML=list.length?list.map(x=>`<div class="row"><div><b>${x.desc}</b><small>${new Date(x.date+'T12:00:00').toLocaleDateString('pt-BR')} · ${x.cat}</small></div><div class="value">${br(x.value)}</div><button class="del" data-id="${x.id}">🗑️</button></div>`).join(''):'<div class="empty">Nenhum gasto cadastrado neste mês.</div>';
  const top=arr[0];
  insight.textContent=inc===0&&sp===0?'Cadastre suas receitas e despesas para receber insights.':inc===0?`Você registrou ${br(sp)} em despesas, mas ainda não cadastrou receitas neste mês.`:`Você tem ${br(bal)} de saldo. ${top?`A maior categoria é ${top[0]}, com ${br(top[1])}.`:''}`;
- const io=incomeObj(); salary.value=io.salary||''; advance.value=io.advance||''; otherIncome.value=io.other||'';
+ if(!typing){const io=incomeObj(); salary.value=fmt(io.salary); advance.value=fmt(io.advance); otherIncome.value=fmt(io.other);}
  persist();
 }
 const totalIncomeEl=document.getElementById('totalIncome'), listEl=document.getElementById('list');
@@ -136,9 +146,10 @@ month.addEventListener('change',()=>{selected=month.value;render()});
  if(!months.includes(next))months.push(next);
  selected=next;render();
 }));
-function saveIncome(){
- incomes[selected]={salary:+salary.value||0,advance:+advance.value||0,other:+otherIncome.value||0};
- render();
+function saveIncome(e){
+ if(e&&e.target)clean(e.target);
+ incomes[selected]={salary:num(salary.value),advance:num(advance.value),other:num(otherIncome.value)};
+ typing=true;render();typing=false;
 }
 salary.addEventListener('input',saveIncome);advance.addEventListener('input',saveIncome);otherIncome.addEventListener('input',saveIncome);
 
@@ -146,7 +157,7 @@ newExpense.addEventListener('click',()=>{date.value=selected+'-01';modal.classLi
 closeModal.addEventListener('click',()=>modal.classList.remove('open'));
 expenseForm.addEventListener('submit',e=>{
  e.preventDefault();
- const v=+value.value;
+ const v=num(value.value);
  if(!desc.value.trim()||!(v>0))return;
  const dt=date.value||selected+'-01';
  expenses.push({id:Date.now(),month:selected,date:dt,desc:desc.value.trim(),cat:cat.value,value:v});
